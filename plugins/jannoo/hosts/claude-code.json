@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "jannoo": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/jannoo-mcp",
+      "args": []
+    }
+  }
+}

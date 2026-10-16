@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "jannoo": {
+      "command": "./scripts/jannoo-mcp",
+      "args": [],
+      "cwd": ".",
+      "env_vars": ["JANNOO_BOARDS_DIR", "JANNOO_AGENT", "JANNOO_APP_PATH"]
+    }
+  }
+}

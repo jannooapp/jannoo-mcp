@@ -1,0 +1,12 @@
+{
+  "name": "jannoo",
+  "displayName": "Jannoo",
+  "version": "1.0.0",
+  "description": "Read and change Jannoo kanban boards — the jannoo-cli skill plus the app's MCP server. Needs Jannoo.app 1.0 or later installed.",
+  "author": { "name": "Cadence Hill LLC", "url": "https://jannoo.app/" },
+  "homepage": "https://jannoo.app/",
+  "repository": "https://github.com/jannooapp/jannoo-mcp",
+  "license": "MIT",
+  "keywords": ["kanban", "markdown", "obsidian", "tasks", "mcp", "macos"],
+  "mcpServers": "./hosts/claude-code.json"
+}

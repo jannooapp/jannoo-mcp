@@ -1,0 +1,14 @@
+{
+  "name": "jannoo-mcp",
+  "description": "Jannoo — the native macOS kanban app whose boards are plain Markdown folders. One plugin: the jannoo-cli skill and the app's MCP server.",
+  "owner": { "name": "Cadence Hill LLC", "url": "https://jannoo.app/" },
+  "plugins": [
+    {
+      "name": "jannoo",
+      "source": "./plugins/jannoo",
+      "description": "Read and change Jannoo kanban boards — the jannoo-cli skill plus the app's MCP server. Needs Jannoo.app installed.",
+      "category": "Productivity",
+      "tags": ["kanban", "markdown", "obsidian", "tasks", "macos"]
+    }
+  ]
+}

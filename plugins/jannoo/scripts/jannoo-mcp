@@ -1,0 +1,118 @@
+#!/bin/sh
+# jannoo-mcp — the launcher the Jannoo plugin ships in place of a server binary.
+#
+# It finds the installed Jannoo.app, checks the copy is Jannoo (a signature anchored to Apple's
+# certificate authority for team 8A6D992J4P, and the `mcp` verb present), and execs its `jannoo` helper
+# as `jannoo mcp`. The server bytes are
+# whatever the installed app is; the app's own updater moves them. Nothing here is compiled.
+#
+# Search order (first qualifying hit wins):
+#   1. $JANNOO_APP_PATH            — an explicit app bundle or helper path
+#   2. /Applications/Jannoo.app
+#   3. ~/Applications/Jannoo.app
+#   4. the `jannoo` symlink `jannoo install` writes (~/.local/bin, /usr/local/bin) or a Homebrew link
+#   5. Spotlight: kMDItemCFBundleIdentifier == app.jannoo.mac
+# Discovery (2-5) skips any candidate under /Volumes/ — a mounted DMG, or any volume other than the boot
+# disk. An explicit $JANNOO_APP_PATH is the user's choice and is not skipped; it is still verified.
+#
+# Everything the host passes in the environment reaches the helper unchanged, so JANNOO_BOARDS_DIR
+# and JANNOO_AGENT work exactly as they do for a hand-written server entry.
+#
+# Exit codes: 0 never (exec replaces this process); 69 no usable Jannoo; 70 a candidate failed
+# verification and nothing else qualified.
+
+set -u
+
+TEAM_ID="8A6D992J4P"
+DOWNLOAD_URL="https://jannoo.app/download/"
+
+helper_of() {
+  # $1 = an app bundle, a helper, or a symlink to either → the helper's path, or nothing.
+  if [ -d "$1" ] && [ -x "$1/Contents/Helpers/jannoo" ]; then
+    printf '%s\n' "$1/Contents/Helpers/jannoo"
+  elif [ -f "$1" ] && [ -x "$1" ]; then
+    printf '%s\n' "$1"
+  else
+    return 1
+  fi
+}
+
+canonical() {
+  # The real path of $1: every directory symlink and the final link chain resolved, so a path that
+  # merely *looks* installed (~/Applications/Jannoo.app → /Volumes/…) is judged by where it really is.
+  if command -v realpath >/dev/null 2>&1; then
+    realpath "$1" 2>/dev/null && return 0
+  fi
+  p="$1"; n=0
+  while [ -L "$p" ] && [ "$n" -lt 16 ]; do
+    t=$(readlink "$p") || break
+    case "$t" in /*) p="$t" ;; *) p="$(dirname "$p")/$t" ;; esac
+    n=$((n + 1))
+  done
+  d=$(cd "$(dirname "$p")" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s\n' "$d" "$(basename "$p")"
+}
+
+qualifies() {
+  # $1 = canonical helper path. Signature valid and anchored to Jannoo's team, then able to speak MCP —
+  # in that order, so nothing unverified ever runs. The volume rule is try()'s, not this function's.
+  h="$1"
+  [ -x "$h" ] || return 1
+  # -R anchors the check to Apple's CA: a self-reported TeamIdentifier or an ad-hoc signature that merely
+  # claims the team fails here. The absolute path keeps a codesign planted on PATH out of the decision.
+  /usr/bin/codesign --verify --strict \
+    -R="anchor apple generic and certificate leaf[subject.OU] = \"$TEAM_ID\"" "$h" >/dev/null 2>&1 || return 1
+  "$h" --help 2>/dev/null | grep -q '^  mcp ' || return 1
+  printf '%s\n' "$h"
+}
+
+tried=0
+found=""
+try() {
+  # $1 = a candidate; $2 = "explicit" when it came from $JANNOO_APP_PATH. Sets $found when the candidate
+  # resolves to a qualifying helper. Runs in this shell, not a subshell, so $tried survives (a candidate
+  # that existed but failed verification changes the refusal text).
+  cand=$(helper_of "$1" 2>/dev/null) || return 1
+  real=$(canonical "$cand") || return 1
+  # Discovery never takes a copy on another volume — a mounted image is "not installed", not "failed
+  # verification", so this runs before $tried flips and a DMG-only machine exits 69. An explicit path is
+  # the user's own pick and goes straight to verification.
+  if [ "${2:-}" != "explicit" ]; then
+    case "$real" in /Volumes/*) return 1 ;; esac
+  fi
+  tried=1
+  found=$(qualifies "$real") || { found=""; return 1; }
+}
+
+if [ -n "${JANNOO_APP_PATH:-}" ]; then
+  try "$JANNOO_APP_PATH" explicit || true
+fi
+[ -n "$found" ] || try "/Applications/Jannoo.app" || true
+[ -n "$found" ] || [ -z "${HOME:-}" ] || try "$HOME/Applications/Jannoo.app" || true
+if [ -z "$found" ]; then
+  for link in "${HOME:-/nonexistent}/.local/bin/jannoo" /usr/local/bin/jannoo /opt/homebrew/bin/jannoo; do
+    [ -L "$link" ] || continue
+    try "$link" && break || true
+  done
+fi
+if [ -z "$found" ] && command -v mdfind >/dev/null 2>&1; then
+  # Spotlight lists every copy; take the first that qualifies. A here-doc keeps the loop in this shell.
+  list=$(mdfind "kMDItemCFBundleIdentifier == 'app.jannoo.mac'" 2>/dev/null || true)
+  while IFS= read -r app; do
+    [ -n "$app" ] || continue
+    try "$app" && break || true
+  done <<EOT
+$list
+EOT
+fi
+
+if [ -z "$found" ]; then
+  if [ "$tried" -eq 1 ]; then
+    echo "jannoo-mcp: a Jannoo was found but is not a signed build with the mcp verb — install the current app from $DOWNLOAD_URL (or set JANNOO_APP_PATH to it)." >&2
+    exit 70
+  fi
+  echo "jannoo-mcp: Jannoo.app is not installed — this plugin drives the installed app; get it from $DOWNLOAD_URL" >&2
+  exit 69
+fi
+
+exec "$found" mcp "$@"
