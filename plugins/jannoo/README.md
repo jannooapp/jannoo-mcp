@@ -7,6 +7,23 @@ lets Claude read and change those boards.
 **The plugin drives the installed app. It does not contain Jannoo.** Install the app first from
 <https://jannoo.app/download/>. macOS only.
 
+## Install
+
+Claude Code 2.1.275 or later, one step:
+
+```
+/plugin install jannoo --marketplace jannooapp/jannoo-mcp
+```
+
+Codex CLI:
+
+```sh
+codex plugin marketplace add jannooapp/jannoo-mcp
+codex plugin add jannoo@jannoo-mcp
+```
+
+Start a new session afterwards.
+
 ## What the plugin contains
 
 - **The `jannoo-cli` skill** — when and how to drive boards with the app's `jannoo` command-line
