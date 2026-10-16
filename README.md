@@ -92,4 +92,9 @@ plugins/jannoo/
   skills/jannoo-cli/SKILL.md        the skill, identical to the one the app installs
 ```
 
+## Support
+
+Questions and problems with the plugin: <support@jannoo.app>, or an issue on this repository.
+Security reports: <security@jannoo.app> — see `SECURITY.md`.
+
 MIT licence for the files in this repository. The app is a separate, licensed product.
