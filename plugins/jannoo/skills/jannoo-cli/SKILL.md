@@ -14,7 +14,7 @@ description: >
   `.jannoo/agent-policy.json` — no policy file means read-only, and that refusal is correct
   behaviour. It also drives the RUNNING app — "show me that card in Jannoo", "reload the board", "sync
   it now" — through `jannoo open`, `reload` and `sync --now`. NOT for editing board files by hand.
-allowed-tools: "Bash Read"
+allowed-tools: "Bash(jannoo:*) Bash(/Applications/Jannoo.app/Contents/Helpers/jannoo:*) Read"
 ---
 
 # Reading and changing a Jannoo board with `jannoo`
